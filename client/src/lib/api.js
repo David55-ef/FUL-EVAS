@@ -23,7 +23,9 @@ async function req(path, opts = {}) {
 export async function isBackendUp() {
   if (backendReachable !== null) return backendReachable;
   try {
-    const res = await fetch(`${API_BASE.replace(/\/api\/v1$/, "")}/health`, { signal: AbortSignal.timeout(2500) });
+    // Free hosting services can take several seconds to wake after being idle.
+    // Give the API enough time to cold-start before falling back to demo mode.
+    const res = await fetch(`${API_BASE.replace(/\/api\/v1$/, "")}/health`, { signal: AbortSignal.timeout(30000) });
     backendReachable = res.ok;
   } catch {
     backendReachable = false;
