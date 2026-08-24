@@ -3,61 +3,106 @@ import Course from "../models/Course.js";
 import CourseRegistration from "../models/CourseRegistration.js";
 import ExamTimetable from "../models/ExamTimetable.js";
 import TimeSlot from "../models/TimeSlot.js";
+import VenueAllocation from "../models/VenueAllocation.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { generateTimetable, buildConflicts } from "../engine/scheduler.js";
 import { pick } from "../utils/pick.js";
 
 const router = express.Router();
-
 const TIMETABLE_UPDATE_FIELDS = ["timeSlot", "examDate", "clash"];
 
-// GET /api/v1/timetable — grouped by time slot, for the Admin Timetable screen.
-// Staff-only: students use /me/timetable, which is scoped to their own
-// registrations rather than exposing the whole university's exam schedule.
 router.get("/", requireAuth, requireRole("ADMIN", "EXAM_OFFICER", "INVIGILATOR"), async (req, res) => {
   const entries = await ExamTimetable.find().populate("course").populate("timeSlot");
+  const allocations = await VenueAllocation.find({ examTimetable: { $in: entries.map((entry) => entry._id) } }).populate("venue");
+  const venuesByExam = new Map();
+  for (const allocation of allocations) {
+    const key = String(allocation.examTimetable);
+    if (!venuesByExam.has(key)) venuesByExam.set(key, []);
+    venuesByExam.get(key).push(allocation.venue?.name);
+  }
+
   const bySlot = new Map();
-  for (const e of entries) {
-    const label = `${e.timeSlot?.label || ""} ${e.examDate ? new Date(e.examDate).toDateString() : ""}`.trim();
+  for (const entry of entries) {
+    const label = `${entry.timeSlot?.label || ""} ${entry.examDate ? new Date(entry.examDate).toDateString() : ""}`.trim();
     if (!bySlot.has(label)) bySlot.set(label, []);
     bySlot.get(label).push({
-      code: e.course?.code, title: e.course?.title,
-      venue: "(see allocation)", clash: e.clash,
+      id: entry._id,
+      code: entry.course?.code,
+      title: entry.course?.title,
+      venue: venuesByExam.get(String(entry._id))?.filter(Boolean).join(", ") || "Not allocated",
+      clash: entry.clash,
     });
   }
   res.json([...bySlot.entries()].map(([time, items]) => ({ time, items })));
 });
 
-// POST /api/v1/timetable/generate — runs the scheduling engine end-to-end
+// Dated exam slots let a morning or afternoon slot be reused on many days.
+// The older timeSlotIds input remains supported for existing callers.
 router.post("/generate", requireAuth, requireRole("ADMIN"), async (req, res) => {
-  const { timeSlotIds } = req.body || {};
-  if (!Array.isArray(timeSlotIds) || timeSlotIds.length === 0) {
-    return res.status(400).json({ status: "error", code: "VALIDATION_ERROR", message: "timeSlotIds is required" });
+  const { timeSlotIds, examSlots, startDate } = req.body || {};
+  const hasDatedSlots = Array.isArray(examSlots) && examSlots.length > 0;
+  if (!hasDatedSlots && (!Array.isArray(timeSlotIds) || timeSlotIds.length === 0)) {
+    return res.status(400).json({ status: "error", code: "VALIDATION_ERROR", message: "examSlots or timeSlotIds is required" });
   }
 
-  const courses = (await Course.find()).map((c) => ({ id: String(c._id), code: c.code }));
-  const registrations = (await CourseRegistration.find()).map((r) => ({
-    studentId: String(r.student), courseId: String(r.course),
-  }));
+  const requestedSlotIds = hasDatedSlots ? examSlots.map((slot) => slot.timeSlotId) : timeSlotIds;
+  if (requestedSlotIds.some((id) => !id)) {
+    return res.status(400).json({ status: "error", code: "VALIDATION_ERROR", message: "Every exam slot needs a timeSlotId" });
+  }
+  const slotDocs = await TimeSlot.find({ _id: { $in: requestedSlotIds } });
+  const slotById = new Map(slotDocs.map((slot) => [String(slot._id), slot]));
+  if (slotById.size !== new Set(requestedSlotIds.map(String)).size) {
+    return res.status(400).json({ status: "error", code: "VALIDATION_ERROR", message: "One or more time slots do not exist" });
+  }
 
+  const fallbackDate = startDate ? new Date(startDate) : new Date();
+  if (Number.isNaN(fallbackDate.getTime())) {
+    return res.status(400).json({ status: "error", code: "VALIDATION_ERROR", message: "startDate is invalid" });
+  }
+  const rawOptions = hasDatedSlots ? examSlots : timeSlotIds.map((timeSlotId) => ({ timeSlotId }));
+  const options = rawOptions.map((option) => {
+    const slot = slotById.get(String(option.timeSlotId));
+    return {
+      timeSlotId: String(option.timeSlotId),
+      examDate: new Date(option.examDate || slot.examDate || fallbackDate),
+    };
+  });
+  if (options.some((option) => Number.isNaN(option.examDate.getTime()))) {
+    return res.status(400).json({ status: "error", code: "VALIDATION_ERROR", message: "Every exam date must be valid" });
+  }
+
+  const optionByKey = new Map(options.map((option) => [
+    `${option.examDate.toISOString().slice(0, 10)}|${option.timeSlotId}`,
+    option,
+  ]));
+  if (optionByKey.size !== options.length) {
+    return res.status(400).json({ status: "error", code: "VALIDATION_ERROR", message: "Exam slots must be unique by date and time" });
+  }
+
+  const courses = (await Course.find({ status: { $ne: "INACTIVE" } })).map((course) => ({ id: String(course._id), code: course.code }));
+  const registrations = (await CourseRegistration.find()).map((registration) => ({
+    studentId: String(registration.student), courseId: String(registration.course),
+  }));
   const conflicts = buildConflicts(registrations);
-  const { assignments, unscheduled } = generateTimetable(courses, timeSlotIds, conflicts);
+  const { assignments, unscheduled } = generateTimetable(courses, [...optionByKey.keys()], conflicts);
 
-  // Persist: naive date assignment (one exam date per slot batch); a real
-  // deployment would map slot ids to specific calendar dates via TimeSlot/Session config.
-  const ops = [...assignments.entries()].map(([courseId, timeSlotId]) => ({
-    updateOne: {
-      filter: { course: courseId },
-      update: { course: courseId, timeSlot: timeSlotId, examDate: new Date(), clash: false },
-      upsert: true,
-    },
-  }));
-  if (ops.length) await ExamTimetable.bulkWrite(ops);
+  const operations = [...assignments.entries()].map(([courseId, optionKey]) => {
+    const option = optionByKey.get(optionKey);
+    return {
+      updateOne: {
+        filter: { course: courseId },
+        update: { course: courseId, timeSlot: option.timeSlotId, examDate: option.examDate, clash: false },
+        upsert: true,
+      },
+    };
+  });
+  if (operations.length) await ExamTimetable.bulkWrite(operations);
 
+  const firstOption = options[0];
   for (const courseId of unscheduled) {
     await ExamTimetable.updateOne(
       { course: courseId },
-      { course: courseId, timeSlot: timeSlotIds[0], examDate: new Date(), clash: true },
+      { course: courseId, timeSlot: firstOption.timeSlotId, examDate: firstOption.examDate, clash: true },
       { upsert: true }
     );
   }
@@ -65,6 +110,7 @@ router.post("/generate", requireAuth, requireRole("ADMIN"), async (req, res) => 
   res.json({
     status: "success",
     scheduled: assignments.size,
+    examSlots: options,
     unscheduled: unscheduled.map((id) => ({ courseId: id, reason: "no_conflict_free_slot" })),
   });
 });

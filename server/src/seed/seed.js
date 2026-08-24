@@ -11,6 +11,10 @@ import CourseRegistration from "../models/CourseRegistration.js";
 import Invigilator from "../models/Invigilator.js";
 import TimeSlot from "../models/TimeSlot.js";
 import User from "../models/User.js";
+import StudentSeatAssignment from "../models/StudentSeatAssignment.js";
+import VenueAllocation from "../models/VenueAllocation.js";
+import InvigilatorAssignment from "../models/InvigilatorAssignment.js";
+import ExamTimetable from "../models/ExamTimetable.js";
 
 import { venues, courseDefs, invigilatorDefs, timeSlotDefs, generateStudents } from "./seedData.js";
 
@@ -28,6 +32,8 @@ async function run() {
     Session.deleteMany({}), Semester.deleteMany({}), Venue.deleteMany({}),
     Course.deleteMany({}), Student.deleteMany({}), CourseRegistration.deleteMany({}),
     Invigilator.deleteMany({}), TimeSlot.deleteMany({}), User.deleteMany({}),
+    StudentSeatAssignment.deleteMany({}), VenueAllocation.deleteMany({}),
+    InvigilatorAssignment.deleteMany({}), ExamTimetable.deleteMany({}),
   ]);
 
   const session = await Session.create({ name: "2025/2026", startDate: new Date("2025-09-01"), endDate: new Date("2026-07-31") });

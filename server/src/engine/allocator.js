@@ -68,13 +68,13 @@ export function assignInvigilators(invigilators, allocations, ratio = 40) {
     bySlot.get(a.timeSlotId).push(a);
   }
 
-  for (const [, allocsInSlot] of bySlot) {
+  for (const [timeSlotId, allocsInSlot] of bySlot) {
     const freeInvigilators = [...invigilators.map((i) => i.id)];
     for (const alloc of allocsInSlot) {
       const needed = Math.max(1, Math.ceil(alloc.studentCount / ratio));
       const assigned = freeInvigilators.splice(0, needed);
       for (const invigilatorId of assigned) {
-        assignments.push({ venueId: alloc.venueId, courseId: alloc.courseId, invigilatorId });
+        assignments.push({ venueId: alloc.venueId, courseId: alloc.courseId, timeSlotId, invigilatorId });
       }
       if (assigned.length < needed) {
         understaffed.push({ courseId: alloc.courseId, venueId: alloc.venueId, needed, available: assigned.length });

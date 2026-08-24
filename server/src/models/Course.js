@@ -6,6 +6,7 @@ const courseSchema = new mongoose.Schema({
   title: { type: String, required: true },
   department: { type: String },
   durationMins: { type: Number, default: 120 },
+  status: { type: String, enum: ["ACTIVE", "INACTIVE"], default: "ACTIVE" },
 });
 courseSchema.index({ semester: 1, code: 1 }, { unique: true });
 

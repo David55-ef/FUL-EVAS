@@ -37,9 +37,9 @@ export default function FindVenue() {
     <div className="screen">
       <div className="search-hero texture-dots">
         <h1>Find your examination venue</h1>
-        <p>Enter your course code or matriculation number to see exactly where and when you're sitting your exam.</p>
+        <p>Enter one of your course codes to see exactly where and when you're sitting the exam.</p>
         <form className="search-box" onSubmit={handleSearch}>
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="e.g. CSC406 or FUL/CSC/20/1234" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="e.g. CSC406" />
           <button className="btn btn-gold" type="submit" disabled={searching}>{searching ? "Searching…" : "Search"}</button>
         </form>
         {error && <div className="search-error">{error}</div>}

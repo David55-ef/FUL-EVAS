@@ -1,23 +1,22 @@
 import ScreenHead from "../components/ScreenHead.jsx";
 import Stamp from "../components/Stamp.jsx";
+import { useApiData } from "../lib/useApiData.js";
+import { getExamSlip } from "../lib/api.js";
+import { sampleMyTimetable } from "../lib/sampleData.js";
 
-const rows = [
-  ["Student", "ADEBAYO, F."],
-  ["Matric No.", "FUL/CSC/20/1234"],
-  ["Course", "CSC406"],
-  ["Venue", "SCI. AUD."],
-  ["Date", "08-SEP-2026"],
-  ["Time", "13:00–15:00"],
-  ["Seat", "B-114"],
-];
+const fallback = {
+  profile: { name: "ADEBAYO, F.", matricNo: "FUL/CSC/20/1234" },
+  exams: sampleMyTimetable,
+};
 
 export default function ExamSlip() {
+  const { data } = useApiData(getExamSlip, fallback);
   return (
     <div className="screen">
       <ScreenHead
         title="Exam Slip"
-        sub="Print or download your official examination slip for CSC406."
-        actions={<button className="btn btn-primary" onClick={() => window.print()}>⬇ Download PDF</button>}
+        sub="Your current examination venues and seat numbers."
+        actions={<button className="btn btn-primary" onClick={() => window.print()}>⬇ Print slip</button>}
       />
       <div className="exam-slip">
         <div className="slip-head">
@@ -26,8 +25,17 @@ export default function ExamSlip() {
         </div>
         <div className="slip-body">
           <div className="slip-rows">
-            {rows.map(([k, v]) => (
-              <div className="slip-row" key={k}><span className="k">{k}</span><span className="v">{v}</span></div>
+            <div className="slip-row"><span className="k">Student</span><span className="v">{data.profile?.name || "—"}</span></div>
+            <div className="slip-row"><span className="k">Matric No.</span><span className="v">{data.profile?.matricNo || "—"}</span></div>
+          </div>
+          <div className="card" style={{ marginTop: 18 }}>
+            {data.exams.map((exam) => (
+              <div className="slot-course" key={exam.code}>
+                <div><div className="code">{exam.code}</div><div className="title">{exam.title}</div></div>
+                <div style={{ textAlign: "right", fontSize: 12 }}>
+                  <div>{exam.venue}</div><div>{exam.time}</div><strong>Seat {exam.seat || "TBA"}</strong>
+                </div>
+              </div>
             ))}
           </div>
         </div>

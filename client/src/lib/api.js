@@ -78,6 +78,15 @@ export async function searchVenue(query) {
   return req(`/me/venue?query=${encodeURIComponent(query)}`);
 }
 
+export async function getMyTimetable() {
+  return req("/me/timetable");
+}
+
+export async function getExamSlip() {
+  const [profile, exams] = await Promise.all([getProfile(), getMyTimetable()]);
+  return { profile, exams };
+}
+
 export async function fetchVenueImage(venueName) {
   return req(`/images/venue?query=${encodeURIComponent(venueName + " Federal University Lokoja")}`);
 }
