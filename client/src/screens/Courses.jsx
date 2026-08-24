@@ -1,13 +1,46 @@
+import { useRef, useState } from "react";
 import ScreenHead from "../components/ScreenHead.jsx";
 import { IconUpload } from "../lib/icons.jsx";
 import { useApiData } from "../lib/useApiData.js";
-import { getCourses } from "../lib/api.js";
+import { getCourses, importCourses } from "../lib/api.js";
 import { sampleCourses } from "../lib/sampleData.js";
 import { useApp } from "../context/AppContext.jsx";
 
 export default function Courses() {
-  const { data: courses } = useApiData(getCourses, sampleCourses);
+  const { data: courses, refresh } = useApiData(getCourses, sampleCourses);
   const { showToast } = useApp();
+  const fileInput = useRef(null);
+  const [summary, setSummary] = useState(null);
+
+  function parseCsv(text) {
+    const [headerLine, ...lines] = text.trim().split(/\r?\n/);
+    const headers = headerLine.split(",").map((h) => h.trim().toLowerCase());
+    return lines.filter(Boolean).map((line) => {
+      const values = line.split(",").map((v) => v.trim());
+      const row = Object.fromEntries(headers.map((header, index) => [header, values[index] || ""]));
+      return {
+        code: row.code || row.coursecode || row["course code"],
+        title: row.title || row["course title"],
+        department: row.department || row.dept,
+        durationMins: row.durationmins ? Number(row.durationmins) : undefined,
+      };
+    }).filter((row) => row.code && row.title);
+  }
+
+  async function handleFiles(files) {
+    const file = files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const coursesToImport = file.name.endsWith(".json") ? JSON.parse(text) : parseCsv(text);
+      const result = await importCourses(Array.isArray(coursesToImport) ? coursesToImport : coursesToImport.courses);
+      setSummary(result);
+      await refresh();
+      showToast(`Imported ${result.imported} course(s).`);
+    } catch (err) {
+      showToast(err.message || "Could not import that file.");
+    }
+  }
 
   return (
     <div className="screen">
@@ -18,23 +51,24 @@ export default function Courses() {
           <div
             className="upload-zone"
             onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => { e.preventDefault(); showToast("File received (demo — wire to POST /courses/import)."); }}
+            onClick={() => fileInput.current?.click()}
+            onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); }}
           >
             <IconUpload />
-            <div className="u-title">Drop course_registrations.csv here</div>
-            <div className="u-sub">or click to browse — .csv, .xlsx up to 10MB</div>
+            <div className="u-title">Drop courses.csv here</div>
+            <div className="u-sub">or click to browse — .csv or .json</div>
+            <input ref={fileInput} type="file" accept=".csv,.json" hidden onChange={(e) => handleFiles(e.target.files)} />
           </div>
-          <div className="hint" style={{ marginTop: 10 }}>148 courses and 15,204 registrations currently loaded for 2025/2026, First Semester.</div>
+          <div className="hint" style={{ marginTop: 10 }}>{courses.length} courses currently loaded. Course registration rows are counted from the backend.</div>
         </div>
         <div className="card">
           <h3 style={{ marginTop: 0, fontSize: 15 }}>Validation summary</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span>Rows processed</span><b className="mono">15,412</b></div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span>Successfully imported</span><b className="mono" style={{ color: "var(--success)" }}>15,204</b></div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span>Rejected — duplicate matric no.</span><b className="mono" style={{ color: "var(--danger)" }}>142</b></div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span>Rejected — unknown course code</span><b className="mono" style={{ color: "var(--danger)" }}>66</b></div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span>Rows processed</span><b className="mono">{summary ? summary.imported + summary.rejected.length : "—"}</b></div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span>Successfully imported</span><b className="mono" style={{ color: "var(--success)" }}>{summary?.imported ?? "—"}</b></div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span>Rejected rows</span><b className="mono" style={{ color: "var(--danger)" }}>{summary?.rejected?.length ?? "—"}</b></div>
+            <div style={{ fontSize: 12, color: "var(--text-soft)" }}>{summary?.rejected?.[0]?.reason || "Import a CSV/JSON file to see validation details."}</div>
           </div>
-          <button className="btn btn-ghost btn-sm" style={{ marginTop: 14 }}>Download rejected rows</button>
         </div>
       </div>
 

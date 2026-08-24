@@ -3,7 +3,7 @@ import ScreenHead from "../components/ScreenHead.jsx";
 import VenueCard from "../components/VenueCard.jsx";
 import CampusMap from "../components/CampusMap.jsx";
 import { useApiData } from "../lib/useApiData.js";
-import { getVenues } from "../lib/api.js";
+import { createVenue, deactivateVenue, getVenues, updateVenue } from "../lib/api.js";
 import { sampleVenues } from "../lib/sampleData.js";
 import { useApp } from "../context/AppContext.jsx";
 
@@ -12,9 +12,10 @@ function domIdFor(tag) {
 }
 
 export default function Venues() {
-  const { data: venues } = useApiData(getVenues, sampleVenues);
+  const { data: venues, refresh } = useApiData(getVenues, sampleVenues);
   const { showToast } = useApp();
   const [highlight, setHighlight] = useState(null);
+  const [editing, setEditing] = useState(null);
 
   function focusVenue(tag) {
     setHighlight(tag);
@@ -23,10 +24,40 @@ export default function Venues() {
     setTimeout(() => setHighlight(null), 1400);
   }
 
-  function handleSave(e) {
+  async function handleSave(e) {
     e.preventDefault();
-    showToast("Venue saved (demo — connect the API to persist).");
+    const form = new FormData(e.currentTarget);
+    const payload = {
+      name: form.get("name").trim(),
+      location: form.get("location").trim(),
+      capacity: Number(form.get("capacity")),
+      status: form.get("status"),
+      tag: form.get("tag").trim() || undefined,
+    };
+    try {
+      if (editing?.id) {
+        await updateVenue(editing.id, payload);
+        showToast("Venue updated.");
+      } else {
+        await createVenue(payload);
+        showToast("Venue registered.");
+      }
+      setEditing(null);
+      await refresh();
+    } catch (err) {
+      showToast(err.message || "Could not save venue.");
+    }
     e.target.reset();
+  }
+
+  async function handleDeactivate(venue) {
+    try {
+      await deactivateVenue(venue.id);
+      showToast(`${venue.name} deactivated.`);
+      await refresh();
+    } catch (err) {
+      showToast(err.message || "Could not deactivate venue.");
+    }
   }
 
   return (
@@ -55,19 +86,23 @@ export default function Venues() {
                 venue={v}
                 domId={domIdFor(v.tag)}
                 highlighted={highlight === v.tag}
-                actions={<><button className="btn btn-ghost btn-sm">Edit</button><button className="btn btn-ghost btn-sm">Deactivate</button></>}
+                actions={<><button className="btn btn-ghost btn-sm" onClick={() => setEditing(v)}>Edit</button><button className="btn btn-ghost btn-sm" onClick={() => handleDeactivate(v)}>Deactivate</button></>}
               />
             ))}
           </div>
         </div>
         <div className="card">
-          <h3 style={{ marginTop: 0, fontSize: 15 }}>Register a new venue</h3>
-          <form style={{ display: "flex", flexDirection: "column", gap: 14 }} onSubmit={handleSave}>
-            <div className="field"><label>Venue name</label><input placeholder="e.g. Faculty of Law Hall" required /></div>
-            <div className="field"><label>Location</label><input placeholder="e.g. Law Complex, Block B" required /></div>
-            <div className="field"><label>Seating capacity</label><input placeholder="e.g. 200" type="number" required /></div>
-            <div className="field"><label>Status</label><select><option>Active</option><option>Inactive</option></select></div>
-            <button className="btn btn-primary" style={{ justifyContent: "center" }} type="submit">Save venue</button>
+          <h3 style={{ marginTop: 0, fontSize: 15 }}>{editing ? "Edit venue" : "Register a new venue"}</h3>
+          <form key={editing?.id || "new"} style={{ display: "flex", flexDirection: "column", gap: 14 }} onSubmit={handleSave}>
+            <div className="field"><label>Venue name</label><input name="name" defaultValue={editing?.name || ""} placeholder="e.g. Faculty of Law Hall" required /></div>
+            <div className="field"><label>Location</label><input name="location" defaultValue={editing?.loc || ""} placeholder="e.g. Law Complex, Block B" required /></div>
+            <div className="field"><label>Seating capacity</label><input name="capacity" defaultValue={editing?.cap || ""} placeholder="e.g. 200" type="number" min="1" required /></div>
+            <div className="field"><label>Map tag</label><input name="tag" defaultValue={editing?.tag || ""} placeholder="e.g. LAW HALL" /></div>
+            <div className="field"><label>Status</label><select name="status" defaultValue={editing?.status || "ACTIVE"}><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select></div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {editing && <button className="btn btn-ghost" type="button" onClick={() => setEditing(null)}>Cancel</button>}
+              <button className="btn btn-primary" style={{ justifyContent: "center", flex: 1 }} type="submit">Save venue</button>
+            </div>
           </form>
         </div>
       </div>

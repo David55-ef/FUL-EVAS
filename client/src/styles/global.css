@@ -134,6 +134,11 @@ tbody tr:hover{ background:var(--parchment-dark); }
 .field input, .field select{ padding:9px 11px; border:1px solid var(--border); border-radius:8px; font-size:13.5px; background:var(--paper); font-family:inherit; color:var(--text); }
 .field input:focus, .field select:focus{ border-color:var(--ink); }
 .field .hint{ font-size:11px; color:var(--text-faint); }
+.password-input{ position:relative; display:flex; }
+.password-input input{ width:100%; padding-right:46px; }
+.password-toggle{ position:absolute; right:5px; top:50%; transform:translateY(-50%); width:36px; height:32px; border:0; border-radius:7px; background:transparent; color:var(--ink); line-height:1; display:grid; place-items:center; }
+.password-toggle svg{ width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.password-toggle:hover, .password-toggle:focus-visible{ background:var(--parchment-dark); outline:2px solid var(--gold); }
 
 .upload-zone{ border:1.5px dashed var(--border); border-radius:var(--radius); padding:34px 20px; text-align:center; background:var(--parchment-dark); }
 .upload-zone svg{ width:30px; height:30px; color:var(--gold-dark); margin-bottom:10px; }

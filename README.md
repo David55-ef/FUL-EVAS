@@ -237,6 +237,22 @@ displays whatever the server says (client-side detection in
 `client/src/lib/department.js` only kicks in for the offline demo-mode
 fallback, when there's no server to ask).
 
+## Updated backend workflow
+
+- Timetable generation accepts dated slots with
+  `{ examSlots: [{ timeSlotId, examDate }] }`. The same morning or afternoon
+  slot can be reused on different days.
+- Venue generation now runs inside a MongoDB transaction and creates one
+  `StudentSeatAssignment` for every seated student. A split course therefore
+  gives each student one exact venue and seat number.
+- `GET /api/v1/me/venue` is student-only and searches only the signed-in
+  student's registered courses. `GET /api/v1/me/timetable` returns those same
+  saved venue and seat details.
+- Admin management endpoints are available under `/students`,
+  `/registrations`, `/courses`, `/venues`, and `/invigilators`. Creating a
+  student or invigilator also creates their login account in the same
+  transaction.
+
 
 
 ```

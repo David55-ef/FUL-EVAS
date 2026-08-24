@@ -5,5 +5,6 @@ const invigilatorAssignmentSchema = new mongoose.Schema({
   invigilator: { type: mongoose.Schema.Types.ObjectId, ref: "Invigilator", required: true },
 });
 invigilatorAssignmentSchema.index({ venueAllocation: 1, invigilator: 1 }, { unique: true });
+invigilatorAssignmentSchema.index({ invigilator: 1 });
 
 export default mongoose.model("InvigilatorAssignment", invigilatorAssignmentSchema);

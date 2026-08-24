@@ -2,14 +2,16 @@ import { useState } from "react";
 import BuildingImage from "../components/BuildingImage.jsx";
 import Stamp from "../components/Stamp.jsx";
 import { IconPin } from "../lib/icons.jsx";
-import { searchVenue, isBackendUp } from "../lib/api.js";
+import { searchPublicVenue, searchVenue, isBackendUp } from "../lib/api.js";
 import { sampleSearchResult } from "../lib/sampleData.js";
+import { useApp } from "../context/AppContext.jsx";
 
 export default function FindVenue() {
   const [query, setQuery] = useState("CSC406");
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [searching, setSearching] = useState(false);
+  const { loggedIn } = useApp();
 
   async function handleSearch(e) {
     e.preventDefault();
@@ -17,7 +19,7 @@ export default function FindVenue() {
     setError(null);
     setResult(null);
     try {
-      const res = await searchVenue(query);
+      const res = loggedIn ? await searchVenue(query) : await searchPublicVenue(query);
       setResult(res);
     } catch (err) {
       // Backend reachable but the search itself failed (not found, bad
@@ -37,9 +39,9 @@ export default function FindVenue() {
     <div className="screen">
       <div className="search-hero texture-dots">
         <h1>Find your examination venue</h1>
-        <p>Enter your course code or matriculation number to see exactly where and when you're sitting your exam.</p>
+        <p>{loggedIn ? "Enter one of your course codes to see your exact venue and seat." : "Enter a course code or matric number to check a published exam venue."}</p>
         <form className="search-box" onSubmit={handleSearch}>
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="e.g. CSC406 or FUL/CSC/20/1234" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="e.g. CSC406" />
           <button className="btn btn-gold" type="submit" disabled={searching}>{searching ? "Searching…" : "Search"}</button>
         </form>
         {error && <div className="search-error">{error}</div>}

@@ -1,6 +1,6 @@
 import ScreenHead from "../components/ScreenHead.jsx";
 import { useApiData } from "../lib/useApiData.js";
-import { getVenues, getCourses, getInvigilators } from "../lib/api.js";
+import { getAllocations, getCourses, getInvigilators } from "../lib/api.js";
 import { sampleVenues, sampleCourses, sampleInvigilators } from "../lib/sampleData.js";
 
 function Bar({ label, value, max, tone = "gold", suffix = "" }) {
@@ -17,7 +17,7 @@ function Bar({ label, value, max, tone = "gold", suffix = "" }) {
 }
 
 export default function Analytics() {
-  const { data: venues } = useApiData(getVenues, sampleVenues);
+  const { data: venues } = useApiData(getAllocations, sampleVenues);
   const { data: courses } = useApiData(getCourses, sampleCourses);
   const { data: invigilators } = useApiData(getInvigilators, sampleInvigilators);
 

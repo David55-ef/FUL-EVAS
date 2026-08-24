@@ -11,6 +11,8 @@ import timetableRoutes from "./routes/timetable.js";
 import allocationRoutes from "./routes/allocation.js";
 import meRoutes from "./routes/me.js";
 import imageRoutes from "./routes/images.js";
+import studentRoutes from "./routes/students.js";
+import registrationRoutes from "./routes/registrations.js";
 
 export function createApp() {
   const app = express();
@@ -49,6 +51,8 @@ export function createApp() {
   app.use("/api/v1/allocation", allocationRoutes);
   app.use("/api/v1/me", meRoutes);
   app.use("/api/v1/images", imageRoutes);
+  app.use("/api/v1/students", studentRoutes);
+  app.use("/api/v1/registrations", registrationRoutes);
 
   // Consistent error envelope for anything that slips through a route's own handling
   app.use((err, req, res, next) => {
