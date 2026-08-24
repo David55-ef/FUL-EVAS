@@ -48,7 +48,7 @@ export default function Landing({ onSignIn }) {
         <nav className="landing-nav-links">
           <a href="#showcase">Venues</a>
           <a href="#map">Campus map</a>
-          <a href="#tour">Photo tour</a>
+          <a href="#showcase">Photo tour</a>
           <a href="#who">Who it's for</a>
           <a href="#" onClick={(e) => { e.preventDefault(); onSignIn(); }}>Sign in</a>
         </nav>

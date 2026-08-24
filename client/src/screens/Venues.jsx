@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import ScreenHead from "../components/ScreenHead.jsx";
 import VenueCard from "../components/VenueCard.jsx";
 import CampusMap from "../components/CampusMap.jsx";
@@ -16,6 +16,7 @@ export default function Venues() {
   const { showToast } = useApp();
   const [highlight, setHighlight] = useState(null);
   const [editing, setEditing] = useState(null);
+  const formCardRef = useRef(null);
 
   function focusVenue(tag) {
     setHighlight(tag);
@@ -60,12 +61,22 @@ export default function Venues() {
     }
   }
 
+  function startRegistering() {
+    setEditing(null);
+    formCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function startEditing(venue) {
+    setEditing(venue);
+    formCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
   return (
     <div className="screen">
       <ScreenHead
         title="Venues"
         sub="Register examination venues and track live seating capacity."
-        actions={<button className="btn btn-primary">＋ Register venue</button>}
+        actions={<button className="btn btn-primary" onClick={startRegistering}>＋ Register venue</button>}
       />
 
       <div className="card campus-map-card">
@@ -86,12 +97,12 @@ export default function Venues() {
                 venue={v}
                 domId={domIdFor(v.tag)}
                 highlighted={highlight === v.tag}
-                actions={<><button className="btn btn-ghost btn-sm" onClick={() => setEditing(v)}>Edit</button><button className="btn btn-ghost btn-sm" onClick={() => handleDeactivate(v)}>Deactivate</button></>}
+                actions={<><button className="btn btn-ghost btn-sm" onClick={() => startEditing(v)}>Edit</button><button className="btn btn-ghost btn-sm" onClick={() => handleDeactivate(v)}>Deactivate</button></>}
               />
             ))}
           </div>
         </div>
-        <div className="card">
+        <div className="card" ref={formCardRef}>
           <h3 style={{ marginTop: 0, fontSize: 15 }}>{editing ? "Edit venue" : "Register a new venue"}</h3>
           <form key={editing?.id || "new"} style={{ display: "flex", flexDirection: "column", gap: 14 }} onSubmit={handleSave}>
             <div className="field"><label>Venue name</label><input name="name" defaultValue={editing?.name || ""} placeholder="e.g. Faculty of Law Hall" required /></div>
