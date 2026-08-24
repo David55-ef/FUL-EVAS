@@ -125,13 +125,33 @@ router.get("/assignments", requireAuth, requireRole("INVIGILATOR"), async (req, 
   const invigilatorId = req.user.linkedId;
   const assignments = await InvigilatorAssignment.find({ invigilator: invigilatorId })
     .populate({ path: "venueAllocation", populate: [{ path: "venue" }, { path: "examTimetable", populate: ["course", "timeSlot"] }] });
+  const allocationIds = assignments.map((a) => a.venueAllocation?._id).filter(Boolean);
+  const allStaff = await InvigilatorAssignment.find({ venueAllocation: { $in: allocationIds } })
+    .populate("invigilator");
+  const staffByAllocation = new Map();
+  for (const assignment of allStaff) {
+    const key = String(assignment.venueAllocation);
+    if (!staffByAllocation.has(key)) staffByAllocation.set(key, []);
+    if (assignment.invigilator?.name) staffByAllocation.get(key).push(assignment.invigilator.name);
+  }
 
   res.json(assignments.map((a) => ({
+    id: a._id,
     venue: a.venueAllocation?.venue?.name,
     art: a.venueAllocation?.venue?.art,
     loc: a.venueAllocation?.venue?.location,
+    cap: a.venueAllocation?.venue?.capacity || 0,
+    used: a.venueAllocation?.studentCount || 0,
+    tag: a.venueAllocation?.venue?.tag,
+    images: a.venueAllocation?.venue?.images || [],
     course: a.venueAllocation?.examTimetable?.course?.code,
+    title: a.venueAllocation?.examTimetable?.course?.title,
+    date: a.venueAllocation?.examTimetable?.examDate ? new Date(a.venueAllocation.examTimetable.examDate).toDateString() : "TBA",
+    time: a.venueAllocation?.examTimetable?.timeSlot
+      ? `${a.venueAllocation.examTimetable.timeSlot.startTime} - ${a.venueAllocation.examTimetable.timeSlot.endTime}`
+      : "TBA",
     studentCount: a.venueAllocation?.studentCount,
+    coInvigilators: (staffByAllocation.get(String(a.venueAllocation?._id)) || []).filter((name) => name !== req.user.name),
   })));
 });
 

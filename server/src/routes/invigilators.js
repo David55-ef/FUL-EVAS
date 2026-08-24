@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import Invigilator from "../models/Invigilator.js";
+import InvigilatorAssignment from "../models/InvigilatorAssignment.js";
 import User from "../models/User.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { pick } from "../utils/pick.js";
@@ -41,6 +42,24 @@ router.post("/", requireAuth, requireRole("ADMIN"), async (req, res) => {
     }], { session });
   });
   res.status(201).json(created);
+});
+
+router.get("/:id/assignments", requireAuth, requireRole("ADMIN", "EXAM_OFFICER"), async (req, res) => {
+  const assignments = await InvigilatorAssignment.find({ invigilator: req.params.id })
+    .populate({ path: "venueAllocation", populate: [{ path: "venue" }, { path: "examTimetable", populate: ["course", "timeSlot"] }] });
+  res.json(assignments.map((assignment) => {
+    const allocation = assignment.venueAllocation;
+    const exam = allocation?.examTimetable;
+    return {
+      id: assignment._id,
+      venue: allocation?.venue?.name || "Unknown venue",
+      course: exam?.course?.code || "Unknown course",
+      title: exam?.course?.title || "",
+      date: exam?.examDate ? new Date(exam.examDate).toDateString() : "TBA",
+      time: exam?.timeSlot ? `${exam.timeSlot.startTime} - ${exam.timeSlot.endTime}` : "TBA",
+      students: allocation?.studentCount || 0,
+    };
+  }));
 });
 
 router.put("/:id", requireAuth, requireRole("ADMIN"), async (req, res) => {

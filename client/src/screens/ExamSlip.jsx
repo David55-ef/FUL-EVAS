@@ -2,11 +2,10 @@ import ScreenHead from "../components/ScreenHead.jsx";
 import Stamp from "../components/Stamp.jsx";
 import { useApiData } from "../lib/useApiData.js";
 import { getExamSlip } from "../lib/api.js";
-import { sampleMyTimetable } from "../lib/sampleData.js";
 
 const fallback = {
-  profile: { name: "ADEBAYO, F.", matricNo: "FUL/CSC/20/1234" },
-  exams: sampleMyTimetable,
+  profile: null,
+  exams: [],
 };
 
 export default function ExamSlip() {
@@ -29,6 +28,7 @@ export default function ExamSlip() {
             <div className="slip-row"><span className="k">Matric No.</span><span className="v">{data.profile?.matricNo || "—"}</span></div>
           </div>
           <div className="card" style={{ marginTop: 18 }}>
+            {data.exams.length === 0 && <p className="empty-note">No exam slip data has been published for this account yet.</p>}
             {data.exams.map((exam) => (
               <div className="slot-course" key={exam.code}>
                 <div><div className="code">{exam.code}</div><div className="title">{exam.title}</div></div>

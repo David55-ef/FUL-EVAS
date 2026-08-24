@@ -1,26 +1,39 @@
 import ScreenHead from "../components/ScreenHead.jsx";
 import { useApiData } from "../lib/useApiData.js";
-import { getTimetable } from "../lib/api.js";
+import { generateTimetable, getTimetable } from "../lib/api.js";
 import { sampleTimetable } from "../lib/sampleData.js";
+import { useApp } from "../context/AppContext.jsx";
 
 export default function Timetable() {
-  const { data: timetable } = useApiData(getTimetable, sampleTimetable);
-  const hasClash = timetable.some((slot) => slot.items.some((it) => it.clash));
+  const { showToast } = useApp();
+  const { data: timetable, refresh } = useApiData(getTimetable, sampleTimetable);
+  const clashCount = timetable.reduce((sum, slot) => sum + slot.items.filter((it) => it.clash).length, 0);
+
+  async function handleRegenerate() {
+    try {
+      const result = await generateTimetable();
+      await refresh();
+      showToast(`Timetable regenerated: ${result.scheduled} courses scheduled.`);
+    } catch (err) {
+      showToast(err.message || "Could not regenerate timetable.");
+    }
+  }
 
   return (
     <div className="screen">
       <ScreenHead
         title="Timetable"
         sub="Automatically generated, clash-free examination schedule for First Semester."
-        actions={<button className="btn btn-gold">↻ Regenerate</button>}
+        actions={<button className="btn btn-gold" onClick={handleRegenerate}>↻ Regenerate</button>}
       />
-      {hasClash && (
+      {clashCount > 0 && (
         <div className="card" style={{ marginBottom: 18, display: "flex", alignItems: "center", gap: 12, background: "var(--danger-bg)", borderColor: "var(--danger)" }}>
-          <span className="badge badge-danger">1 clash flagged</span>
-          <span style={{ fontSize: 13, color: "var(--text)" }}>ENG101 shares students with a course already scheduled in this slot — resolve manually before publishing.</span>
+          <span className="badge badge-danger">{clashCount} clash{clashCount === 1 ? "" : "es"} flagged</span>
+          <span style={{ fontSize: 13, color: "var(--text)" }}>Review the highlighted courses before publishing the timetable.</span>
         </div>
       )}
       <div className="card">
+        {timetable.length === 0 && <p className="empty-note">No timetable has been generated yet.</p>}
         {timetable.map((slot) => (
           <div className="timeline-slot" key={slot.time}>
             <div className="slot-time">{slot.time}</div>

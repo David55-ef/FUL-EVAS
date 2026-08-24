@@ -1,14 +1,14 @@
 import ScreenHead from "../components/ScreenHead.jsx";
-import { sampleMyTimetable } from "../lib/sampleData.js";
 import { useApiData } from "../lib/useApiData.js";
 import { getMyTimetable } from "../lib/api.js";
 
 export default function MyTimetable() {
-  const { data: timetable } = useApiData(getMyTimetable, sampleMyTimetable);
+  const { data: timetable } = useApiData(getMyTimetable, []);
   return (
     <div className="screen">
       <ScreenHead title="My Timetable" sub="Your full personal examination schedule for First Semester." />
       <div className="card">
+        {timetable.length === 0 && <p className="empty-note">No timetable has been published for this account yet.</p>}
         {timetable.map((it) => (
           <div className="timeline-slot" key={it.code}>
             <div className="slot-time">{it.time}</div>

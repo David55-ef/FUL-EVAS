@@ -26,6 +26,10 @@ router.get("/", async (req, res) => {
     path: "examTimetable",
     populate: ["course", "timeSlot"],
   });
+  const invigilatorCounts = await InvigilatorAssignment.aggregate([
+    { $group: { _id: "$venueAllocation", count: { $sum: 1 } } },
+  ]);
+  const invigilatorsByAllocation = new Map(invigilatorCounts.map((item) => [String(item._id), item.count]));
   const sessionsByVenue = new Map();
   for (const a of allocations) {
     const venueId = String(a.venue);
@@ -39,9 +43,11 @@ router.get("/", async (req, res) => {
       date,
       time: exam?.timeSlot?.label || "TBA",
       used: 0,
+      invigilators: 0,
       courses: [],
     };
     current.used += a.studentCount;
+    current.invigilators += invigilatorsByAllocation.get(String(a._id)) || 0;
     if (exam?.course?.code) current.courses.push(exam.course.code);
     venueSessions.set(sessionKey, current);
   }
@@ -54,6 +60,35 @@ router.get("/", async (req, res) => {
     art: v.art, tag: v.tag, mx: v.mapX, my: v.mapY,
     images: v.images || [],
   })));
+});
+
+// GET /api/v1/allocation/records — printable allocation rows for officers/admins
+router.get("/records", requireAuth, requireRole("ADMIN", "EXAM_OFFICER"), async (req, res) => {
+  const allocations = await VenueAllocation.find()
+    .populate("venue")
+    .populate({ path: "examTimetable", populate: ["course", "timeSlot"] })
+    .sort({ _id: 1 });
+  const assignmentCounts = await InvigilatorAssignment.aggregate([
+    { $group: { _id: "$venueAllocation", count: { $sum: 1 } } },
+  ]);
+  const invigilatorsByAllocation = new Map(assignmentCounts.map((item) => [String(item._id), item.count]));
+
+  res.json(allocations.map((allocation) => {
+    const exam = allocation.examTimetable;
+    const date = exam?.examDate ? new Date(exam.examDate).toDateString() : "TBA";
+    return {
+      id: allocation._id,
+      code: exam?.course?.code || "Unknown course",
+      title: exam?.course?.title || "",
+      venue: allocation.venue?.name || "Unknown venue",
+      location: allocation.venue?.location || "",
+      date,
+      time: exam?.timeSlot ? `${exam.timeSlot.startTime} - ${exam.timeSlot.endTime}` : "TBA",
+      when: `${date} ${exam?.timeSlot?.label || ""}`.trim(),
+      students: allocation.studentCount,
+      invigilators: invigilatorsByAllocation.get(String(allocation._id)) || 0,
+    };
+  }));
 });
 
 // POST /api/v1/allocation/generate — runs the allocation engine end-to-end

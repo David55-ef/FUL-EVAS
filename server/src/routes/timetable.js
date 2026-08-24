@@ -11,6 +11,18 @@ import { pick } from "../utils/pick.js";
 const router = express.Router();
 const TIMETABLE_UPDATE_FIELDS = ["timeSlot", "examDate", "clash"];
 
+function nextExamDates(count, start = new Date()) {
+  const dates = [];
+  const cursor = new Date(start);
+  cursor.setHours(0, 0, 0, 0);
+  while (dates.length < count) {
+    const day = cursor.getDay();
+    if (day !== 0 && day !== 6) dates.push(new Date(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return dates;
+}
+
 router.get("/", requireAuth, requireRole("ADMIN", "EXAM_OFFICER", "INVIGILATOR"), async (req, res) => {
   const entries = await ExamTimetable.find().populate("course").populate("timeSlot");
   const allocations = await VenueAllocation.find({ examTimetable: { $in: entries.map((entry) => entry._id) } }).populate("venue");
@@ -40,12 +52,26 @@ router.get("/", requireAuth, requireRole("ADMIN", "EXAM_OFFICER", "INVIGILATOR")
 // The older timeSlotIds input remains supported for existing callers.
 router.post("/generate", requireAuth, requireRole("ADMIN"), async (req, res) => {
   const { timeSlotIds, examSlots, startDate } = req.body || {};
-  const hasDatedSlots = Array.isArray(examSlots) && examSlots.length > 0;
+  const fallbackDate = startDate ? new Date(startDate) : new Date();
+  if (Number.isNaN(fallbackDate.getTime())) {
+    return res.status(400).json({ status: "error", code: "VALIDATION_ERROR", message: "startDate is invalid" });
+  }
+  let hasDatedSlots = Array.isArray(examSlots) && examSlots.length > 0;
+  let generatedSlots = null;
   if (!hasDatedSlots && (!Array.isArray(timeSlotIds) || timeSlotIds.length === 0)) {
-    return res.status(400).json({ status: "error", code: "VALIDATION_ERROR", message: "examSlots or timeSlotIds is required" });
+    const slotDocs = await TimeSlot.find().sort({ startTime: 1 });
+    if (!slotDocs.length) {
+      return res.status(400).json({ status: "error", code: "VALIDATION_ERROR", message: "Create at least one time slot before generating a timetable" });
+    }
+    const coursesCount = await Course.countDocuments({ status: { $ne: "INACTIVE" } });
+    const daysNeeded = Math.max(1, Math.ceil(coursesCount / slotDocs.length));
+    const dates = nextExamDates(daysNeeded, fallbackDate);
+    generatedSlots = dates.flatMap((date) => slotDocs.map((slot) => ({ timeSlotId: slot._id, examDate: date })));
+    hasDatedSlots = true;
   }
 
-  const requestedSlotIds = hasDatedSlots ? examSlots.map((slot) => slot.timeSlotId) : timeSlotIds;
+  const requestedExamSlots = generatedSlots || examSlots;
+  const requestedSlotIds = hasDatedSlots ? requestedExamSlots.map((slot) => slot.timeSlotId) : timeSlotIds;
   if (requestedSlotIds.some((id) => !id)) {
     return res.status(400).json({ status: "error", code: "VALIDATION_ERROR", message: "Every exam slot needs a timeSlotId" });
   }
@@ -55,11 +81,7 @@ router.post("/generate", requireAuth, requireRole("ADMIN"), async (req, res) => 
     return res.status(400).json({ status: "error", code: "VALIDATION_ERROR", message: "One or more time slots do not exist" });
   }
 
-  const fallbackDate = startDate ? new Date(startDate) : new Date();
-  if (Number.isNaN(fallbackDate.getTime())) {
-    return res.status(400).json({ status: "error", code: "VALIDATION_ERROR", message: "startDate is invalid" });
-  }
-  const rawOptions = hasDatedSlots ? examSlots : timeSlotIds.map((timeSlotId) => ({ timeSlotId }));
+  const rawOptions = hasDatedSlots ? requestedExamSlots : timeSlotIds.map((timeSlotId) => ({ timeSlotId }));
   const options = rawOptions.map((option) => {
     const slot = slotById.get(String(option.timeSlotId));
     return {

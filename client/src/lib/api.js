@@ -58,24 +58,64 @@ export async function getVenues() {
   return req("/venues");
 }
 
+export async function createVenue(payload) {
+  return req("/venues", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export async function updateVenue(id, payload) {
+  return req(`/venues/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+}
+
+export async function deactivateVenue(id) {
+  return req(`/venues/${id}`, { method: "DELETE" });
+}
+
 export async function getCourses() {
   return req("/courses");
+}
+
+export async function importCourses(courses) {
+  return req("/courses/import", { method: "POST", body: JSON.stringify({ courses }) });
 }
 
 export async function getInvigilators() {
   return req("/invigilators");
 }
 
+export async function createInvigilator(payload) {
+  return req("/invigilators", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export async function getInvigilatorAssignments(id) {
+  return req(`/invigilators/${id}/assignments`);
+}
+
 export async function getTimetable() {
   return req("/timetable");
+}
+
+export async function generateTimetable(payload = {}) {
+  return req("/timetable/generate", { method: "POST", body: JSON.stringify(payload) });
 }
 
 export async function getAllocations() {
   return req("/allocation");
 }
 
+export async function generateAllocation(payload = {}) {
+  return req("/allocation/generate", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export async function getAllocationRecords() {
+  return req("/allocation/records");
+}
+
 export async function searchVenue(query) {
   return req(`/me/venue?query=${encodeURIComponent(query)}`);
+}
+
+export async function searchPublicVenue(query) {
+  return req(`/venues/search?query=${encodeURIComponent(query)}`);
 }
 
 export async function getMyTimetable() {
@@ -85,6 +125,10 @@ export async function getMyTimetable() {
 export async function getExamSlip() {
   const [profile, exams] = await Promise.all([getProfile(), getMyTimetable()]);
   return { profile, exams };
+}
+
+export async function getMyAssignments() {
+  return req("/me/assignments");
 }
 
 export async function fetchVenueImage(venueName) {

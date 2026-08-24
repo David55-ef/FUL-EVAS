@@ -13,6 +13,7 @@ export default function Landing({ onSignIn }) {
 
   const totalCapacity = venues.reduce((sum, v) => sum + (v.cap || 0), 0);
   const departmentsServed = new Set(courses.map((c) => c.dept)).size || 1;
+  const registrations = courses.reduce((sum, c) => sum + (c.students || 0), 0);
 
   // Hero carousel: one real photo per venue that actually has one, cycling
   // automatically — the same photos used on the venue cards further down,
@@ -68,7 +69,7 @@ export default function Landing({ onSignIn }) {
           </div>
           <div className="hero-microstats">
             <div><b>{venues.length}</b><span>Registered venues</span></div>
-            <div><b>15,204</b><span>Students covered</span></div>
+            <div><b>{registrations.toLocaleString("en-US")}</b><span>Course registrations</span></div>
             <div><b>{courses.length}</b><span>Courses this semester</span></div>
             <div><b>0</b><span>Double-booked seats</span></div>
           </div>
@@ -102,7 +103,7 @@ export default function Landing({ onSignIn }) {
         <div className="m-item"><b>{totalCapacity.toLocaleString("en-US")}</b><span>Total seating capacity</span></div>
         <div className="m-item"><b>{departmentsServed}</b><span>Departments served</span></div>
         <div className="m-item"><b>4</b><span>User roles supported</span></div>
-        <div className="m-item"><b>&lt;1s</b><span>Avg. venue lookup time</span></div>
+        <div className="m-item"><b>{registrations.toLocaleString("en-US")}</b><span>Course registrations</span></div>
       </section>
 
       <section className="landing-section" id="search">

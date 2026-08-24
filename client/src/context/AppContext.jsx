@@ -37,7 +37,7 @@ export const NAV = {
 // bypassed entirely (e.g. someone editing local React state in devtools),
 // no data belonging to another role becomes reachable.
 function allowedScreens(role) {
-  return new Set((NAV[role] || []).map((item) => item.id).concat(["allocations", "allocation"]));
+  return new Set((NAV[role] || []).map((item) => item.id));
 }
 
 export function AppProvider({ children }) {

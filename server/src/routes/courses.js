@@ -1,11 +1,27 @@
 import express from "express";
 import Course from "../models/Course.js";
 import CourseRegistration from "../models/CourseRegistration.js";
+import Semester from "../models/Semester.js";
+import Session from "../models/Session.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { pick } from "../utils/pick.js";
 
 const router = express.Router();
 const COURSE_FIELDS = ["semester", "code", "title", "department", "durationMins", "status"];
+
+async function defaultSemesterId() {
+  const existing = await Semester.findOne().sort({ _id: -1 });
+  if (existing) return existing._id;
+  const year = new Date().getFullYear();
+  const sessionName = `${year}/${year + 1}`;
+  const session = await Session.findOne({ name: sessionName }) || await Session.create({
+    name: sessionName,
+    startDate: new Date(`${year}-09-01`),
+    endDate: new Date(`${year + 1}-07-31`),
+  });
+  const semester = await Semester.create({ session: session._id, name: "First" });
+  return semester._id;
+}
 
 router.get("/", async (req, res) => {
   const courses = await Course.find({ status: { $ne: "INACTIVE" } });
@@ -21,9 +37,10 @@ router.get("/", async (req, res) => {
 
 router.post("/", requireAuth, requireRole("ADMIN"), async (req, res) => {
   const input = pick(req.body, COURSE_FIELDS);
-  if (!input.semester || !input.code || !input.title) {
-    return res.status(400).json({ status: "error", code: "VALIDATION_ERROR", message: "semester, code, and title are required" });
+  if (!input.code || !input.title) {
+    return res.status(400).json({ status: "error", code: "VALIDATION_ERROR", message: "code and title are required" });
   }
+  input.semester = input.semester || await defaultSemesterId();
   const course = await Course.create(input);
   res.status(201).json(course);
 });
@@ -32,9 +49,12 @@ router.post("/import", requireAuth, requireRole("ADMIN"), async (req, res) => {
   // Expects { courses: [{ semesterId, code, title, department, durationMins }] }
   const { courses = [] } = req.body || {};
   const results = { imported: 0, rejected: [] };
+  const semester = await defaultSemesterId();
   for (const c of courses) {
     try {
-      await Course.create(pick(c, COURSE_FIELDS));
+      const input = pick(c, COURSE_FIELDS);
+      input.semester = input.semester || semester;
+      await Course.create(input);
       results.imported++;
     } catch (err) {
       results.rejected.push({ code: c.code, reason: err.message });
