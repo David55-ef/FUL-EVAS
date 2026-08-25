@@ -16,6 +16,7 @@ export default function Venues() {
   const { showToast } = useApp();
   const [highlight, setHighlight] = useState(null);
   const [editing, setEditing] = useState(null);
+  const [pendingDeactivate, setPendingDeactivate] = useState(null);
   const formCardRef = useRef(null);
 
   function focusVenue(tag) {
@@ -34,6 +35,7 @@ export default function Venues() {
       capacity: Number(form.get("capacity")),
       status: form.get("status"),
       tag: form.get("tag").trim() || undefined,
+      images: form.get("images").split(/\r?\n|,/).map((image) => image.trim()).filter(Boolean),
     };
     try {
       if (editing?.id) {
@@ -51,10 +53,12 @@ export default function Venues() {
     e.target.reset();
   }
 
-  async function handleDeactivate(venue) {
+  async function confirmDeactivate() {
+    if (!pendingDeactivate) return;
     try {
-      await deactivateVenue(venue.id);
-      showToast(`${venue.name} deactivated.`);
+      await deactivateVenue(pendingDeactivate.id);
+      showToast(`${pendingDeactivate.name} deactivated.`);
+      setPendingDeactivate(null);
       await refresh();
     } catch (err) {
       showToast(err.message || "Could not deactivate venue.");
@@ -87,29 +91,22 @@ export default function Venues() {
         <CampusMap venues={venues} onPinClick={focusVenue} highlightTag={highlight} />
       </div>
 
-      <div className="section-title" style={{ marginTop: 26 }}>All registered venues</div>
-      <div className="grid grid-2" style={{ alignItems: "start" }}>
-        <div>
-          <div className="grid grid-2">
-            {venues.map((v) => (
-              <VenueCard
-                key={v.tag}
-                venue={v}
-                domId={domIdFor(v.tag)}
-                highlighted={highlight === v.tag}
-                actions={<><button className="btn btn-ghost btn-sm" onClick={() => startEditing(v)}>Edit</button><button className="btn btn-ghost btn-sm" onClick={() => handleDeactivate(v)}>Deactivate</button></>}
-              />
-            ))}
-          </div>
-        </div>
+      <div className="venue-form-band">
         <div className="card" ref={formCardRef}>
           <h3 style={{ marginTop: 0, fontSize: 15 }}>{editing ? "Edit venue" : "Register a new venue"}</h3>
           <form key={editing?.id || "new"} style={{ display: "flex", flexDirection: "column", gap: 14 }} onSubmit={handleSave}>
-            <div className="field"><label>Venue name</label><input name="name" defaultValue={editing?.name || ""} placeholder="e.g. Faculty of Law Hall" required /></div>
-            <div className="field"><label>Location</label><input name="location" defaultValue={editing?.loc || ""} placeholder="e.g. Law Complex, Block B" required /></div>
-            <div className="field"><label>Seating capacity</label><input name="capacity" defaultValue={editing?.cap || ""} placeholder="e.g. 200" type="number" min="1" required /></div>
-            <div className="field"><label>Map tag</label><input name="tag" defaultValue={editing?.tag || ""} placeholder="e.g. LAW HALL" /></div>
-            <div className="field"><label>Status</label><select name="status" defaultValue={editing?.status || "ACTIVE"}><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select></div>
+            <div className="venue-form-grid">
+              <div className="field"><label>Venue name</label><input name="name" defaultValue={editing?.name || ""} placeholder="e.g. Faculty of Law Hall" required /></div>
+              <div className="field"><label>Location</label><input name="location" defaultValue={editing?.loc || ""} placeholder="e.g. Law Complex, Block B" required /></div>
+              <div className="field"><label>Seating capacity</label><input name="capacity" defaultValue={editing?.cap || ""} placeholder="e.g. 200" type="number" min="1" required /></div>
+              <div className="field"><label>Map tag</label><input name="tag" defaultValue={editing?.tag || ""} placeholder="e.g. LAW HALL" /></div>
+              <div className="field"><label>Status</label><select name="status" defaultValue={editing?.status || "ACTIVE"}><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select></div>
+            </div>
+            <div className="field">
+              <label>Venue images</label>
+              <textarea name="images" defaultValue={(editing?.images || []).join("\n")} placeholder="/venues/lt-a/lt-a-1.jpg&#10;https://example.com/hall-photo.jpg" rows="3" />
+              <span className="hint">Paste one image path or URL per line. For demo, bundled paths from client/public work best.</span>
+            </div>
             <div style={{ display: "flex", gap: 8 }}>
               {editing && <button className="btn btn-ghost" type="button" onClick={() => setEditing(null)}>Cancel</button>}
               <button className="btn btn-primary" style={{ justifyContent: "center", flex: 1 }} type="submit">Save venue</button>
@@ -117,6 +114,32 @@ export default function Venues() {
           </form>
         </div>
       </div>
+
+      <div className="section-title" style={{ marginTop: 26 }}>All registered venues</div>
+      <div className="grid grid-3">
+        {venues.map((v) => (
+          <VenueCard
+            key={v.tag}
+            venue={v}
+            domId={domIdFor(v.tag)}
+            highlighted={highlight === v.tag}
+            actions={<><button className="btn btn-ghost btn-sm" onClick={() => startEditing(v)}>Edit</button><button className="btn btn-ghost btn-sm" onClick={() => setPendingDeactivate(v)}>Deactivate</button></>}
+          />
+        ))}
+      </div>
+
+      {pendingDeactivate && (
+        <div className="modal-scrim" onClick={() => setPendingDeactivate(null)}>
+          <div className="confirm-panel" onClick={(e) => e.stopPropagation()}>
+            <h2>Deactivate venue?</h2>
+            <p>{pendingDeactivate.name} will be hidden from future allocations, but the record stays in the system.</p>
+            <div className="confirm-actions">
+              <button className="btn btn-ghost" onClick={() => setPendingDeactivate(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={confirmDeactivate}>Deactivate venue</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

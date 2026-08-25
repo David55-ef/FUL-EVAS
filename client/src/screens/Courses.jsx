@@ -22,6 +22,7 @@ export default function Courses() {
         code: row.code || row.coursecode || row["course code"],
         title: row.title || row["course title"],
         department: row.department || row.dept,
+        level: row.level ? Number(row.level) : undefined,
         durationMins: row.durationmins ? Number(row.durationmins) : undefined,
       };
     }).filter((row) => row.code && row.title);
@@ -74,12 +75,12 @@ export default function Courses() {
 
       <div className="section-title">Courses this semester</div>
       <div className="table-wrap"><div className="table-scroll"><table>
-        <thead><tr><th>Code</th><th>Title</th><th>Department</th><th>Registered students</th></tr></thead>
+        <thead><tr><th>Code</th><th>Title</th><th>Department</th><th>Level</th><th>Registered students</th></tr></thead>
         <tbody>
           {courses.map((c) => (
             <tr key={c.code}>
               <td className="mono" style={{ fontWeight: 600, color: "var(--ink)" }}>{c.code}</td>
-              <td>{c.title}</td><td>{c.dept}</td><td>{c.students}</td>
+              <td>{c.title}</td><td>{c.dept}</td><td>{c.level ? `${c.level}L` : "—"}</td><td>{c.students}</td>
             </tr>
           ))}
         </tbody>
