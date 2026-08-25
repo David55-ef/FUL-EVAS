@@ -20,7 +20,7 @@ function downloadCsv(filename, rows) {
 }
 
 export default function Allocation() {
-  const { showToast } = useApp();
+  const { role, showToast } = useApp();
   const { data: venues, refresh } = useApiData(getAllocations, sampleVenues);
 
   async function handleRerun() {
@@ -48,7 +48,7 @@ export default function Allocation() {
       <ScreenHead
         title="Venue Allocation"
         sub="Students and invigilators assigned to venues for each scheduled examination."
-        actions={<><button className="btn btn-ghost" onClick={handleExport}>Export CSV</button><button className="btn btn-gold" onClick={handleRerun}>↻ Re-run allocation</button></>}
+        actions={<><button className="btn btn-ghost" onClick={handleExport}>Export CSV</button>{role === "admin" && <button className="btn btn-gold" onClick={handleRerun}>↻ Re-run allocation</button>}</>}
       />
       <div className="grid grid-2">
         {venues.length === 0 && <p className="empty-note">No venue allocation has been generated yet.</p>}

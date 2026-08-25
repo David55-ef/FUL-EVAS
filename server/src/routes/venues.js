@@ -50,10 +50,14 @@ router.get("/search", async (req, res) => {
   } else {
     student = await Student.findOne({ matricNo: new RegExp(`^${safeQuery}$`, "i"), isActive: { $ne: false } });
     if (!student) return res.status(404).json({ status: "error", code: "NOT_FOUND", message: "No scheduled exam was found for that search" });
-    seatAssignment = await StudentSeatAssignment.findOne({ student: student._id })
+    const seatAssignments = await StudentSeatAssignment.find({ student: student._id })
       .populate({ path: "examTimetable", populate: ["course", "timeSlot"] })
-      .populate({ path: "venueAllocation", populate: "venue" })
-      .sort({ createdAt: 1 });
+      .populate({ path: "venueAllocation", populate: "venue" });
+    const now = new Date();
+    seatAssignment = seatAssignments
+      .sort((a, b) => new Date(a.examTimetable?.examDate || 0) - new Date(b.examTimetable?.examDate || 0))
+      .find((assignment) => new Date(assignment.examTimetable?.examDate || 0) >= now)
+      || seatAssignments[0];
     timetableEntry = seatAssignment?.examTimetable;
   }
 
@@ -70,7 +74,9 @@ router.get("/search", async (req, res) => {
   res.json({
     code: timetableEntry.course?.code,
     title: timetableEntry.course?.title,
-    venue: allocations.map((allocation) => allocation.venue?.name).filter(Boolean).join(", ") || firstAllocation.venue?.name,
+    venue: seatAssignment
+      ? firstAllocation.venue?.name
+      : allocations.map((allocation) => allocation.venue?.name).filter(Boolean).join(", ") || firstAllocation.venue?.name,
     venueArt: firstAllocation.venue?.art || "nlt",
     venueLoc: firstAllocation.venue?.location || "",
     date: timetableEntry.examDate ? new Date(timetableEntry.examDate).toDateString() : "TBA",
