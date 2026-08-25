@@ -58,19 +58,49 @@ export const venues = [
 
 
 export const courseDefs = [
-  { code: "CSC406", title: "Special Topics in Computer Science", department: "Computer Science" },
-  { code: "CSC401", title: "Software Engineering II", department: "Computer Science" },
-  { code: "MTH201", title: "Mathematical Methods I", department: "Mathematics" },
-  { code: "BIO305", title: "Cell Biology & Genetics", department: "Life Sciences" },
-  { code: "CHM202", title: "Organic Chemistry II", department: "Chemistry" },
-  { code: "ENG101", title: "Use of English I", department: "General Studies" },
+  { code: "GST101", title: "Use of English I", department: "General Studies", level: 100 },
+  { code: "GST103", title: "Nigerian Peoples and Culture", department: "General Studies", level: 100 },
+  { code: "MTH101", title: "Elementary Mathematics I", department: "Mathematics", level: 100 },
+  { code: "PHY101", title: "General Physics I", department: "Physics", level: 100 },
+  { code: "CHM101", title: "General Chemistry I", department: "Chemistry", level: 100 },
+  { code: "BIO101", title: "General Biology I", department: "Biology", level: 100 },
+  { code: "CSC201", title: "Computer Programming II", department: "Computer Science", level: 200 },
+  { code: "MTH201", title: "Mathematical Methods I", department: "Mathematics", level: 200 },
+  { code: "CHM202", title: "Organic Chemistry II", department: "Chemistry", level: 200 },
+  { code: "PHY205", title: "Waves and Optics", department: "Physics", level: 200 },
+  { code: "BIO205", title: "Cell Biology", department: "Biology", level: 200 },
+  { code: "ECO201", title: "Principles of Economics", department: "Economics", level: 200 },
+  { code: "CSC301", title: "Data Structures and Algorithms", department: "Computer Science", level: 300 },
+  { code: "CSC305", title: "Database Systems", department: "Computer Science", level: 300 },
+  { code: "MCB301", title: "General Microbiology", department: "Microbiology", level: 300 },
+  { code: "BCH303", title: "Metabolism of Carbohydrates", department: "Biochemistry", level: 300 },
+  { code: "GEO301", title: "Geomorphology", department: "Geography", level: 300 },
+  { code: "POL301", title: "Political Theory", department: "Political Science", level: 300 },
+  { code: "CSC401", title: "Software Engineering II", department: "Computer Science", level: 400 },
+  { code: "CSC406", title: "Special Topics in Computer Science", department: "Computer Science", level: 400 },
+  { code: "STA401", title: "Statistical Inference", department: "Statistics", level: 400 },
+  { code: "ACC401", title: "Advanced Financial Accounting", department: "Accounting", level: 400 },
+  { code: "BUS405", title: "Strategic Management", department: "Business Administration", level: 400 },
+  { code: "ZOO401", title: "Animal Physiology", department: "Zoology", level: 400 },
+  { code: "LAW501", title: "Law of Evidence", department: "Law", level: 500 },
+  { code: "LAW503", title: "Company Law", department: "Law", level: 500 },
+  { code: "ENG501", title: "Engineering Design Project", department: "Engineering", level: 500 },
+  { code: "CVE501", title: "Structural Analysis", department: "Civil Engineering", level: 500 },
 ];
 
 export const invigilatorDefs = [
-  { staffId: "FUL/STAFF/0231", name: "Mrs. A. Yusuf", department: "Computer Science", contact: "a.yusuf@ful.edu.ng" },
-  { staffId: "FUL/STAFF/0417", name: "Mr. T. Nubi", department: "Environmental Sciences", contact: "t.nubi@ful.edu.ng" },
-  { staffId: "FUL/STAFF/0188", name: "Dr. K. Adeyemi", department: "Mathematics", contact: "k.adeyemi@ful.edu.ng" },
-  { staffId: "FUL/STAFF/0509", name: "Mrs. F. Bello", department: "Life Sciences", contact: "f.bello@ful.edu.ng" },
+  { staffId: "FUL/STAFF/0231", name: "Aisha Yusuf", department: "Computer Science", contact: "a.yusuf@ful.edu.ng" },
+  { staffId: "FUL/STAFF/0417", name: "Tunde Nubi", department: "Environmental Sciences", contact: "t.nubi@ful.edu.ng" },
+  { staffId: "FUL/STAFF/0188", name: "Kemi Adeyemi", department: "Mathematics", contact: "k.adeyemi@ful.edu.ng" },
+  { staffId: "FUL/STAFF/0509", name: "Fatima Bello", department: "Life Sciences", contact: "f.bello@ful.edu.ng" },
+  { staffId: "FUL/STAFF/0642", name: "Chinedu Okafor", department: "Physics", contact: "c.okafor@ful.edu.ng" },
+  { staffId: "FUL/STAFF/0716", name: "Maryam Abdullahi", department: "Chemistry", contact: "m.abdullahi@ful.edu.ng" },
+  { staffId: "FUL/STAFF/0825", name: "Samuel Ajayi", department: "Economics", contact: "s.ajayi@ful.edu.ng" },
+  { staffId: "FUL/STAFF/0934", name: "Grace Eze", department: "Accounting", contact: "g.eze@ful.edu.ng" },
+  { staffId: "FUL/STAFF/1048", name: "Ibrahim Musa", department: "Political Science", contact: "i.musa@ful.edu.ng" },
+  { staffId: "FUL/STAFF/1157", name: "Blessing Ojo", department: "Business Administration", contact: "b.ojo@ful.edu.ng" },
+  { staffId: "FUL/STAFF/1269", name: "Daniel Etim", department: "Civil Engineering", contact: "d.etim@ful.edu.ng" },
+  { staffId: "FUL/STAFF/1381", name: "Hauwa Sani", department: "Law", contact: "h.sani@ful.edu.ng" },
 ];
 
 export const timeSlotDefs = [
@@ -84,16 +114,58 @@ export const timeSlotDefs = [
 // from the matric number itself (departmentFromMatric), exactly the way
 // the real login flow works, so the seed data proves the mechanism rather
 // than faking its result.
-export function generateStudents(countPerCourse = 30) {
+const studentNames = [
+  "Adebayo Samuel", "Maryam Ibrahim", "Chinedu Nwankwo", "Fatima Usman", "Temitope Adewale",
+  "Grace Okoro", "Ibrahim Sadiq", "Blessing James", "Daniel Musa", "Aisha Bello",
+  "David Akpan", "Zainab Aliyu", "Victor Eze", "Ruth Oladipo", "Emeka Obi",
+  "Hauwa Mohammed", "Kelvin Ojo", "Esther Nnamdi", "Yusuf Abdullahi", "Peace Martins",
+  "Michael Uche", "Hadiza Sani", "Tosin Balogun", "Mercy Etim", "Abubakar Lawal",
+  "Favour Adeyemi", "Peter Danjuma", "Khadija Umar", "John Okafor", "Sarah Ibitoye",
+  "Collins Chukwu", "Aminat Salisu", "Emmanuel Bassey", "Joy Afolabi", "Suleiman Idris",
+  "Deborah Ene", "Nathaniel Oke", "Halima Garba", "Precious Onu", "Gbenga Alabi",
+  "Sandra Nwosu", "Mustapha Yakubu", "Rachel Odey", "Joshua Audu", "Mariam Bashir",
+  "Iniobong Udoh", "Oluwaseun Akinola", "Nkechi Anya", "Bashir Ahmed", "Victoria Abiola",
+];
+
+const middleNames = [
+  "Oluwafemi", "Ifeanyi", "Aminu", "Chiamaka", "Olamide", "Nnenna", "Kabiru", "Uduak",
+  "Ayomide", "Ngozi", "Sadiq", "Ezinne", "Temiloluwa", "Abiodun", "Chisom", "Opeyemi",
+];
+
+const departmentCodes = {
+  "Computer Science": "CSC",
+  Mathematics: "MTH",
+  Physics: "PHY",
+  Chemistry: "CHM",
+  Biology: "BIO",
+  Microbiology: "MCB",
+  Biochemistry: "BCH",
+  Geography: "GEO",
+  Economics: "ECO",
+  "Political Science": "POL",
+  Statistics: "STA",
+  Accounting: "ACC",
+  "Business Administration": "BUS",
+  Zoology: "ZOO",
+  Law: "LAW",
+  Engineering: "ENG",
+  "Civil Engineering": "CVE",
+  "General Studies": "GST",
+};
+
+export function generateStudents(countPerCourse = 18) {
   const students = [];
   let n = 1;
   for (const course of courseDefs) {
     for (let i = 0; i < countPerCourse; i++) {
-      const matricNo = `FUL/${course.code.slice(0, 3)}/22/${String(n).padStart(4, "0")}`;
+      const deptCode = departmentCodes[course.department] || course.code.slice(0, 3);
+      const matricNo = `FUL/${deptCode}/22/${String(n).padStart(4, "0")}`;
+      const name = `${studentNames[(n - 1) % studentNames.length]} ${middleNames[(n - 1) % middleNames.length]}`;
       students.push({
         matricNo,
-        name: `Student ${n}`,
+        name,
         department: departmentFromMatric(matricNo) || course.department,
+        level: course.level,
         courseCode: course.code,
       });
       n++;
@@ -101,8 +173,10 @@ export function generateStudents(countPerCourse = 30) {
   }
   // A handful of students double-registered across courses, to give the
   // scheduler genuine clash-avoidance work to do.
-  students.push({ matricNo: "FUL/CSC/22/0201", name: "Cross-Reg Student A", department: departmentFromMatric("FUL/CSC/22/0201"), courseCode: "MTH201" });
-  students.push({ matricNo: "FUL/CSC/22/0202", name: "Cross-Reg Student B", department: departmentFromMatric("FUL/CSC/22/0202"), courseCode: "ENG101" });
+  students.push({ matricNo: "FUL/CSC/22/0901", name: "Ayomide Bakare", department: departmentFromMatric("FUL/CSC/22/0901"), level: 400, courseCode: "MTH201" });
+  students.push({ matricNo: "FUL/CSC/22/0902", name: "Nora Okonkwo", department: departmentFromMatric("FUL/CSC/22/0902"), level: 400, courseCode: "GST101" });
+  students.push({ matricNo: "FUL/ECO/22/0903", name: "Kabiru Hassan", department: departmentFromMatric("FUL/ECO/22/0903") || "Economics", level: 200, courseCode: "GST103" });
+  students.push({ matricNo: "FUL/LAW/22/0904", name: "Ifeoma Ndukwe", department: departmentFromMatric("FUL/LAW/22/0904") || "Law", level: 500, courseCode: "GST101" });
 
   return students;
 }

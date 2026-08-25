@@ -86,11 +86,21 @@ router.get("/search", async (req, res) => {
 });
 
 router.post("/", requireAuth, requireRole("ADMIN"), async (req, res) => {
-  const { name, location, capacity, art, tag, mapX, mapY } = req.body || {};
+  const { name, location, capacity, status, art, tag, mapX, mapY, images } = req.body || {};
   if (!name || !location || !capacity) {
     return res.status(400).json({ status: "error", code: "VALIDATION_ERROR", message: "name, location, and capacity are required" });
   }
-  const venue = await Venue.create({ name, location, capacity, art, tag: tag || name.slice(0, 6).toUpperCase(), mapX, mapY });
+  const venue = await Venue.create({
+    name,
+    location,
+    capacity,
+    status,
+    art,
+    images: Array.isArray(images) ? images : [],
+    tag: tag || name.slice(0, 6).toUpperCase(),
+    mapX,
+    mapY,
+  });
   res.status(201).json(toClient(venue));
 });
 

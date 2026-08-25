@@ -15,7 +15,7 @@ router.get("/", requireAuth, requireRole("ADMIN", "EXAM_OFFICER"), async (req, r
 });
 
 router.post("/", requireAuth, requireRole("ADMIN"), async (req, res) => {
-  const { matricNo, name, email, password } = req.body || {};
+  const { matricNo, name, email, level, password } = req.body || {};
   if (!matricNo || !name || !password || password.length < 8) {
     return res.status(400).json({ status: "error", code: "VALIDATION_ERROR", message: "matricNo, name, and a password of at least 8 characters are required" });
   }
@@ -27,6 +27,7 @@ router.post("/", requireAuth, requireRole("ADMIN"), async (req, res) => {
       name: name.trim(),
       email,
       department: departmentFromMatric(normalizedMatric) || null,
+      level,
     }], { session });
     await User.create([{
       username: normalizedMatric,
@@ -39,7 +40,7 @@ router.post("/", requireAuth, requireRole("ADMIN"), async (req, res) => {
 });
 
 router.put("/:id", requireAuth, requireRole("ADMIN"), async (req, res) => {
-  const updates = pick(req.body, ["name", "email", "department"]);
+  const updates = pick(req.body, ["name", "email", "department", "level"]);
   const student = await Student.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
   if (!student) return res.status(404).json({ status: "error", code: "NOT_FOUND", message: "Student not found" });
   res.json(student);

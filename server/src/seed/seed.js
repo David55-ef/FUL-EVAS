@@ -50,7 +50,7 @@ async function run() {
 
   const studentDefs = generateStudents(30);
   const createdStudents = await Student.insertMany(
-    studentDefs.map((s) => ({ matricNo: s.matricNo, name: s.name, department: s.department }))
+    studentDefs.map((s) => ({ matricNo: s.matricNo, name: s.name, department: s.department, level: s.level }))
   );
   console.log(`✓ ${createdStudents.length} students`);
   const studentByMatric = new Map(createdStudents.map((s) => [s.matricNo, s]));
@@ -72,7 +72,13 @@ async function run() {
   await User.insertMany([
     { username: "FUL/STAFF/ADMIN", passwordHash, role: "ADMIN", name: "System Administrator" },
     { username: "FUL/STAFF/OFFICER", passwordHash, role: "EXAM_OFFICER", name: "Examinations Office" },
-    { username: invigilatorDefs[0].staffId, passwordHash, role: "INVIGILATOR", linkedId: createdInvigilators[0]._id },
+    ...createdInvigilators.map((invigilator) => ({
+      username: invigilator.staffId,
+      passwordHash,
+      role: "INVIGILATOR",
+      name: invigilator.name,
+      linkedId: invigilator._id,
+    })),
   ]);
 
   // Every seeded student gets a real login account — not just the first

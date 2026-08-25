@@ -5,6 +5,7 @@ const courseSchema = new mongoose.Schema({
   code: { type: String, required: true },
   title: { type: String, required: true },
   department: { type: String },
+  level: { type: Number },
   durationMins: { type: Number, default: 120 },
   status: { type: String, enum: ["ACTIVE", "INACTIVE"], default: "ACTIVE" },
 });

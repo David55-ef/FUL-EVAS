@@ -7,7 +7,7 @@ import { requireAuth, requireRole } from "../middleware/auth.js";
 import { pick } from "../utils/pick.js";
 
 const router = express.Router();
-const COURSE_FIELDS = ["semester", "code", "title", "department", "durationMins", "status"];
+const COURSE_FIELDS = ["semester", "code", "title", "department", "level", "durationMins", "status"];
 
 async function defaultSemesterId() {
   const existing = await Semester.findOne().sort({ _id: -1 });
@@ -31,6 +31,7 @@ router.get("/", async (req, res) => {
   const countMap = new Map(counts.map((c) => [String(c._id), c.count]));
   res.json(courses.map((c) => ({
     id: c._id, code: c.code, title: c.title, dept: c.department || "—",
+    level: c.level || null,
     students: countMap.get(String(c._id)) || 0,
   })));
 });
