@@ -217,6 +217,53 @@ test("allocation records include printable rows and invigilator counts", async (
   assert.equal(row.invigilators, 1);
 });
 
+test("allocation summary exposes venue schedules with proportional invigilator counts", async () => {
+  const { semester } = await basicExamData();
+  const [largeCourse, smallCourse] = await models.Course.insertMany([
+    { semester: semester._id, code: "GST301", title: "Entrepreneurship" },
+    { semester: semester._id, code: "CSC411", title: "Compiler Design" },
+  ]);
+  const slot = await models.TimeSlot.create({ label: "Morning", startTime: "09:00", endTime: "11:00" });
+  const [largeVenue, smallVenue] = await models.Venue.insertMany([
+    { name: "Large Hall", location: "Main Campus", capacity: 120, tag: "LH" },
+    { name: "Small Hall", location: "Main Campus", capacity: 30, tag: "SH" },
+  ]);
+  const [largeExam, smallExam] = await models.ExamTimetable.insertMany([
+    { course: largeCourse._id, timeSlot: slot._id, examDate: new Date("2026-09-12") },
+    { course: smallCourse._id, timeSlot: slot._id, examDate: new Date("2026-09-12") },
+  ]);
+  const students = await models.Student.insertMany(Array.from({ length: 150 }, (_, index) => ({
+    matricNo: `FUL/CSC/22/${String(index + 1).padStart(4, "0")}`,
+    name: `Student ${index + 1}`,
+  })));
+  await models.CourseRegistration.insertMany([
+    ...students.slice(0, 120).map((student) => ({ student: student._id, course: largeCourse._id })),
+    ...students.slice(120, 150).map((student) => ({ student: student._id, course: smallCourse._id })),
+  ]);
+  await models.Invigilator.insertMany(Array.from({ length: 4 }, (_, index) => ({
+    staffId: `FUL/STAFF/88${index}`,
+    name: `Staff ${index + 1}`,
+  })));
+
+  const generated = await request("/api/v1/allocation/generate", {
+    method: "POST",
+    bearer: token("ADMIN"),
+    body: { ratio: 40 },
+  });
+  assert.equal(generated.status, 200);
+
+  const summary = await request("/api/v1/allocation");
+  assert.equal(summary.status, 200);
+  const venues = await summary.json();
+  const largeSession = venues.find((venue) => String(venue.id) === String(largeVenue._id)).sessions[0];
+  const smallSession = venues.find((venue) => String(venue.id) === String(smallVenue._id)).sessions[0];
+  assert.equal(largeSession.allocations.find((allocation) => allocation.code === "GST301").invigilatorCount, 3);
+  assert.equal(smallSession.allocations.find((allocation) => allocation.code === "CSC411").invigilatorCount, 1);
+  assert.equal(largeSession.invigilators, 3);
+  assert.equal(smallSession.invigilators, 1);
+  assert.ok(largeExam && smallExam, "both exams are scheduled in the same session for this test");
+});
+
 test("deactivated accounts cannot keep using an old token", async () => {
   const user = await models.User.create({ username: "old-admin", passwordHash: "x", role: "ADMIN", name: "Old Admin", isActive: false });
   const response = await request("/api/v1/me/profile", { bearer: signToken(user) });
