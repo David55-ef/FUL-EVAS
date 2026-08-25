@@ -26,10 +26,15 @@ router.get("/", async (req, res) => {
     path: "examTimetable",
     populate: ["course", "timeSlot"],
   });
-  const invigilatorCounts = await InvigilatorAssignment.aggregate([
-    { $group: { _id: "$venueAllocation", count: { $sum: 1 } } },
-  ]);
-  const invigilatorsByAllocation = new Map(invigilatorCounts.map((item) => [String(item._id), item.count]));
+  const assignmentDocs = await InvigilatorAssignment.find({
+    venueAllocation: { $in: allocations.map((allocation) => allocation._id) },
+  }).populate("invigilator");
+  const invigilatorsByAllocation = new Map();
+  for (const assignment of assignmentDocs) {
+    const key = String(assignment.venueAllocation);
+    if (!invigilatorsByAllocation.has(key)) invigilatorsByAllocation.set(key, []);
+    if (assignment.invigilator?.name) invigilatorsByAllocation.get(key).push(assignment.invigilator.name);
+  }
   const sessionsByVenue = new Map();
   for (const a of allocations) {
     const venueId = String(a.venue);
@@ -45,10 +50,20 @@ router.get("/", async (req, res) => {
       used: 0,
       invigilators: 0,
       courses: [],
+      allocations: [],
     };
+    const invigilators = invigilatorsByAllocation.get(String(a._id)) || [];
     current.used += a.studentCount;
-    current.invigilators += invigilatorsByAllocation.get(String(a._id)) || 0;
+    current.invigilators += invigilators.length;
     if (exam?.course?.code) current.courses.push(exam.course.code);
+    current.allocations.push({
+      id: a._id,
+      code: exam?.course?.code || "Unknown course",
+      title: exam?.course?.title || "",
+      students: a.studentCount,
+      invigilatorCount: invigilators.length,
+      invigilators,
+    });
     venueSessions.set(sessionKey, current);
   }
   res.json(venues.map((v) => ({

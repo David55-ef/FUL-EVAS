@@ -43,6 +43,33 @@ export default function Allocation() {
     }
   }
 
+  function venueSchedule(venue) {
+    const sessions = venue.sessions || [];
+    if (!sessions.length) return <div className="allocation-schedule-empty">No exam scheduled in this venue yet.</div>;
+    return (
+      <div className="allocation-schedule">
+        {sessions.slice(0, 3).map((session) => (
+          <div className="allocation-session" key={`${session.date}-${session.time}`}>
+            <div>
+              <strong>{session.date} · {session.time}</strong>
+              {(session.allocations || []).map((allocation) => (
+                <div className="allocation-line" key={allocation.id}>
+                  <span>{allocation.code}</span>
+                  <span>{allocation.students} students</span>
+                  <span>{allocation.invigilatorCount} invigilator{allocation.invigilatorCount === 1 ? "" : "s"}</span>
+                </div>
+              ))}
+            </div>
+            <div className="allocation-staff">
+              {(session.allocations || []).flatMap((allocation) => allocation.invigilators || []).join(", ") || "No invigilator assigned"}
+            </div>
+          </div>
+        ))}
+        {sessions.length > 3 && <div className="allocation-more">+{sessions.length - 3} more session{sessions.length - 3 === 1 ? "" : "s"}</div>}
+      </div>
+    );
+  }
+
   return (
     <div className="screen">
       <ScreenHead
@@ -57,10 +84,7 @@ export default function Allocation() {
             key={v.tag}
             venue={v}
             footer={
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-soft)" }}>
-                <span>Invigilators: {(v.sessions || []).reduce((sum, session) => sum + (session.invigilators || 0), 0)}</span>
-                <span>{v.sessions?.[0]?.time || "No active session"}</span>
-              </div>
+              venueSchedule(v)
             }
           />
         ))}

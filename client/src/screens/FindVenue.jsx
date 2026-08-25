@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BuildingImage from "../components/BuildingImage.jsx";
 import Stamp from "../components/Stamp.jsx";
 import { IconPin } from "../lib/icons.jsx";
@@ -11,15 +11,14 @@ export default function FindVenue() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [searching, setSearching] = useState(false);
-  const { loggedIn } = useApp();
+  const { loggedIn, venueQuery } = useApp();
 
-  async function handleSearch(e) {
-    e.preventDefault();
+  async function runSearch(value) {
     setSearching(true);
     setError(null);
     setResult(null);
     try {
-      const res = loggedIn ? await searchVenue(query) : await searchPublicVenue(query);
+      const res = loggedIn ? await searchVenue(value) : await searchPublicVenue(value);
       setResult(res);
     } catch (err) {
       // Backend reachable but the search itself failed (not found, bad
@@ -34,6 +33,18 @@ export default function FindVenue() {
       setSearching(false);
     }
   }
+
+  async function handleSearch(e) {
+    e.preventDefault();
+    await runSearch(query);
+  }
+
+  useEffect(() => {
+    if (!venueQuery) return;
+    setQuery(venueQuery);
+    runSearch(venueQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [venueQuery]);
 
   return (
     <div className="screen">

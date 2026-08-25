@@ -47,6 +47,7 @@ export function AppProvider({ children }) {
   const [name, setName] = useState(null);
   const [department, setDepartment] = useState(null);
   const [screen, setScreenState] = useState(null);
+  const [venueQuery, setVenueQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [demoMode, setDemoMode] = useState(null);
   const [toast, setToast] = useState(null);
@@ -107,9 +108,14 @@ export function AppProvider({ children }) {
     setScreenState((prev) => (role && allowedScreens(role).has(id) ? id : prev));
   }, [role]);
 
+  const openFindVenue = useCallback((query) => {
+    setVenueQuery(query || "");
+    setScreenState((prev) => (role && allowedScreens(role).has("findvenue") ? "findvenue" : prev));
+  }, [role]);
+
   const value = {
     loggedIn, restoring, role, name, department,
-    screen, setScreen, sidebarOpen, setSidebarOpen, demoMode,
+    screen, setScreen, venueQuery, openFindVenue, sidebarOpen, setSidebarOpen, demoMode,
     enter, logout, toast, showToast,
   };
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
